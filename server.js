@@ -14,8 +14,8 @@ const server = http.createServer((req, res) =>  {
 server.listen('8080');
 
 const getFunction = (req, res) => {
-  fs.readFile(req.url, (err, data) => {
-    if(err){
+  fs.readFile('public' + req.url, (err, data) => {
+    if(err !== null){
       res.write(fs.readFileSync('public/404.html'));
       res.end();
     } else {
@@ -28,27 +28,44 @@ const getFunction = (req, res) => {
 
 const postFunction = (req, res) => {
   req.on('data', (data) => {
-    // fs.writeFile('./public' + req.url, querystring.parse(data.toString()).toString());
-    console.log(querystring.parse(data.toString()));
+    const reqBody = querystring.parse(data.toString());
+    fs.writeFile('public' + req.url, htmlTemplate(reqBody));
+    // fs.writeFile('public/index.html', updateIndex());
+    updateIndex(req, reqBody);
     res.end();
   });
 };
 
-const htmlTemplate = (req) => {
-  const title = req.url;
+const updateIndex = (req, reqBody) => {
+  fs.readFile('public/index.html', (err, data) => {
+    let indexFile = data.toString();
+    let theOL = indexFile.search('</ol>');
+    let newElement =
+    `
+    <li>
+      <a href='${req.url}'> ${reqBody.elementName}</a>
+    </li>
+    `;
+
+    let output = [indexFile.slice(0, theOL), newElement, indexFile.slice(theOL)].join('');
+    fs.writeFileSync('public/index.html', output, 'utf8');
+  });
+};
+
+const htmlTemplate = (reqBody) => (
   `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>The Elements - Helium</title>
+  <title>The Elements - ${reqBody.elementName}</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h1>${title}</h1>
-  <h2>H</h2>
-  <h3>Atomic number 2</h3>
-  <p></p>
-  <p><a href="/">back</a></p>
+  <h1>${reqBody.elementName}</h1>
+  <h2>${reqBody.elementSymbol}</h2>
+  <h3>Atomic number ${reqBody.elementAtomicNumber}</h3>
+  <p>${reqBody.elementDescription}</p>
+  <p><a href="/index.html">back</a></p>
 </body>
 </html>`
-}
+);
