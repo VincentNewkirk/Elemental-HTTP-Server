@@ -12,8 +12,8 @@ const server = http.createServer((req, res) =>  {
   if(req.method === 'GET'){
     getFunction(req, res);
   } else if(req.method === 'POST'){
-    postFunction(req, res);
     updateIndexHtml(req, res);
+    postFunction(req, res);
   } else if(req.method === 'PUT'){
     putFunction(req, res);
   }
@@ -66,27 +66,29 @@ const postFunction = (req, res) => {
       'success' : true});
 
     fs.writeFile('public' + req.url, htmlTemplate(reqBody));
-//    updateIndexHtml(req, reqBody);
     res.end();
   });
 };
 
 const updateIndexHtml = ( req, reqBody ) =>{
-  fs.readFile('public/index.html', (err, data)=>{
-    let indexHtmlString = data.toString();
-    indexHtmlString = indexHtmlString.replace('</ol>',
-    `  <li>
-      <a href="${req.url}">${reqBody.elementName}</a>
-    </li>
-    </ol>`);
-    let findTheNum = indexHtmlString.indexOf(`</h3>`);
-    let numOfElements = parseFloat(indexHtmlString.charAt(findTheNum-1));
-    let incrementNumElements = ++numOfElements;
-    let htmlArray = indexHtmlString.split('\n');
-    htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
-    indexHtmlString = htmlArray.join(`\n`);
+  req.on('data', (data) => {
+    const reqBody = querystring.parse(data.toString());
+    fs.readFile('public/index.html', (err, data)=>{
+      let indexHtmlString = data.toString();
+      indexHtmlString = indexHtmlString.replace('</ol>',
+      `  <li>
+        <a href="${req.url}">${reqBody.elementName}</a>
+      </li>
+      </ol>`);
+      let findTheNum = indexHtmlString.indexOf(`</h3>`);
+      let numOfElements = parseFloat(indexHtmlString.charAt(findTheNum-1));
+      let incrementNumElements = ++numOfElements;
+      let htmlArray = indexHtmlString.split('\n');
+      htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
+      indexHtmlString = htmlArray.join(`\n`);
 
-    fs.writeFile('public/index.html', indexHtmlString, 'utf8');
+      fs.writeFile('public/index.html', indexHtmlString, 'utf8');
+    });
   });
 };
 
