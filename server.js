@@ -4,15 +4,41 @@ const path = require('path');
 const querystring = require('querystring');
 let elementCounter = 2;
 
+/**********************
+***********SERVER***********
+**********************/
+
 const server = http.createServer((req, res) =>  {
   if(req.method === 'GET'){
     getFunction(req, res);
   } else if(req.method === 'POST'){
     postFunction(req, res);
+    updateIndexHtml(req, res);
+  } else if(req.method === 'PUT'){
+    putFunction(req, res);
   }
 });
 
 server.listen('8080');
+
+
+/***************************************
+**************FUNCTIONS*************
+***************************************/
+
+const putFunction = (req, res) => {
+  fs.readFile('public' + req.url, (err, data) => {
+    if(err !== null){
+      res.writeHead(500, {
+        'Content-type':'application/json',
+        "error" : "resource /carbon.html does not exist",
+        });
+      res.end();
+    } else {
+      postFunction(req, res);
+    }
+  });
+};
 
 const getFunction = (req, res) => {
   if(req.url === '/'){
@@ -20,6 +46,7 @@ const getFunction = (req, res) => {
   }
   fs.readFile('public' + req.url, (err, data) => {
     if(err !== null){
+      res.writeHead(404)
       res.write(fs.readFileSync('public/404.html'));
       res.end();
     } else {
@@ -33,8 +60,13 @@ const getFunction = (req, res) => {
 const postFunction = (req, res) => {
   req.on('data', (data) => {
     const reqBody = querystring.parse(data.toString());
+
+    res.writeHead(200, {
+      'Content-type' : 'application/json',
+      'success' : true});
+
     fs.writeFile('public' + req.url, htmlTemplate(reqBody));
-    updateIndexHtml(req, reqBody);
+//    updateIndexHtml(req, reqBody);
     res.end();
   });
 };
@@ -53,35 +85,14 @@ const updateIndexHtml = ( req, reqBody ) =>{
     let htmlArray = indexHtmlString.split('\n');
     htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
     indexHtmlString = htmlArray.join(`\n`);
+
     fs.writeFile('public/index.html', indexHtmlString, 'utf8');
   });
 };
-// const updateIndex = (req, reqBody) => {
-//   fs.readFile('public/index.html', (err, data) => {
-//     let indexFile = data.toString();
-//     let findTheNum = indexFile.indexOf(`</h3>`);
-//     let numOfElements = parseFloat(indexFile.charAt(findTheNum-1));
-//     let incrementNumElements = ++numOfElements;
-//     let htmlArray = indexFile.split('\n');
-//     htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
-//     indexFile = htmlArray.join(`\n`);
-//     fs.writeFile('public/index.html', indexFile, 'utf8');
 
-//     let theOL = indexFile.search('</ol>');
-
-//     let newElement =
-//     `
-//     <li>
-//       <a href='${req.url}'> ${reqBody.elementName}</a>
-//     </li>
-//     `;
-
-//     let output = [indexFile.slice(0, theOL), newElement, indexFile.slice(theOL)].join('');
-
-//     fs.writeFileSync('public/index.html', output, 'utf8');
-//     }
-//   );
-// };
+/************************
+************TEMPLATE************
+************************/
 
 const htmlTemplate = (reqBody) => (
   `<!DOCTYPE html>
