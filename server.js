@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
+let elementCounter = 2;
 
 const server = http.createServer((req, res) =>  {
   if(req.method === 'GET'){
@@ -14,6 +15,9 @@ const server = http.createServer((req, res) =>  {
 server.listen('8080');
 
 const getFunction = (req, res) => {
+  if(req.url === '/'){
+    req.url = '/index.html';
+  }
   fs.readFile('public' + req.url, (err, data) => {
     if(err !== null){
       res.write(fs.readFileSync('public/404.html'));
@@ -30,27 +34,54 @@ const postFunction = (req, res) => {
   req.on('data', (data) => {
     const reqBody = querystring.parse(data.toString());
     fs.writeFile('public' + req.url, htmlTemplate(reqBody));
-    // fs.writeFile('public/index.html', updateIndex());
-    updateIndex(req, reqBody);
+    updateIndexHtml(req, reqBody);
     res.end();
   });
 };
 
-const updateIndex = (req, reqBody) => {
-  fs.readFile('public/index.html', (err, data) => {
-    let indexFile = data.toString();
-    let theOL = indexFile.search('</ol>');
-    let newElement =
-    `
-    <li>
-      <a href='${req.url}'> ${reqBody.elementName}</a>
+const updateIndexHtml = ( req, reqBody ) =>{
+  fs.readFile('public/index.html', (err, data)=>{
+    let indexHtmlString = data.toString();
+    indexHtmlString = indexHtmlString.replace('</ol>',
+    `  <li>
+      <a href="${req.url}">${reqBody.elementName}</a>
     </li>
-    `;
-
-    let output = [indexFile.slice(0, theOL), newElement, indexFile.slice(theOL)].join('');
-    fs.writeFileSync('public/index.html', output, 'utf8');
+    </ol>`);
+    let findTheNum = indexHtmlString.indexOf(`</h3>`);
+    let numOfElements = parseFloat(indexHtmlString.charAt(findTheNum-1));
+    let incrementNumElements = ++numOfElements;
+    let htmlArray = indexHtmlString.split('\n');
+    htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
+    indexHtmlString = htmlArray.join(`\n`);
+    fs.writeFile('public/index.html', indexHtmlString, 'utf8');
   });
 };
+// const updateIndex = (req, reqBody) => {
+//   fs.readFile('public/index.html', (err, data) => {
+//     let indexFile = data.toString();
+//     let findTheNum = indexFile.indexOf(`</h3>`);
+//     let numOfElements = parseFloat(indexFile.charAt(findTheNum-1));
+//     let incrementNumElements = ++numOfElements;
+//     let htmlArray = indexFile.split('\n');
+//     htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
+//     indexFile = htmlArray.join(`\n`);
+//     fs.writeFile('public/index.html', indexFile, 'utf8');
+
+//     let theOL = indexFile.search('</ol>');
+
+//     let newElement =
+//     `
+//     <li>
+//       <a href='${req.url}'> ${reqBody.elementName}</a>
+//     </li>
+//     `;
+
+//     let output = [indexFile.slice(0, theOL), newElement, indexFile.slice(theOL)].join('');
+
+//     fs.writeFileSync('public/index.html', output, 'utf8');
+//     }
+//   );
+// };
 
 const htmlTemplate = (reqBody) => (
   `<!DOCTYPE html>
