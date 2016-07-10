@@ -2,7 +2,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
-let elementCounter = 2;
 
 /**********************
 ***********SERVER***********
@@ -16,6 +15,8 @@ const server = http.createServer((req, res) =>  {
     postFunction(req, res);
   } else if(req.method === 'PUT'){
     putFunction(req, res);
+  } else if(req.method === 'DELETE'){
+    deleteFunction(req, res);
   }
 });
 
@@ -25,13 +26,31 @@ server.listen('8080');
 /***************************************
 **************FUNCTIONS*************
 ***************************************/
+const deleteFunction = (req, res) => {
+  fs.readFile('public' + req.url, (err, data) => {
+    if(err !== null){
+      res.writeHead(500, {
+        'Content-type':'application/jason',
+        'error':`resource ${req.url} does not exist`,
+      });
+      res.end();
+    } else {
+      res.writeHead(200, {
+        'Content-type':'application/json',
+        'success': true,
+      });
+      fs.unlink('public' + req.url);
+      res.end();
+    }
+  });
+};
 
 const putFunction = (req, res) => {
   fs.readFile('public' + req.url, (err, data) => {
     if(err !== null){
       res.writeHead(500, {
         'Content-type':'application/json',
-        "error" : "resource /carbon.html does not exist",
+        "error" : `resource ${req.url} does not exist`,
         });
       res.end();
     } else {
@@ -46,7 +65,7 @@ const getFunction = (req, res) => {
   }
   fs.readFile('public' + req.url, (err, data) => {
     if(err !== null){
-      res.writeHead(404)
+      res.writeHead(404);
       res.write(fs.readFileSync('public/404.html'));
       res.end();
     } else {
@@ -60,11 +79,9 @@ const getFunction = (req, res) => {
 const postFunction = (req, res) => {
   req.on('data', (data) => {
     const reqBody = querystring.parse(data.toString());
-
     res.writeHead(200, {
       'Content-type' : 'application/json',
       'success' : true});
-
     fs.writeFile('public' + req.url, htmlTemplate(reqBody));
     res.end();
   });
@@ -86,7 +103,6 @@ const updateIndexHtml = ( req, reqBody ) =>{
       let htmlArray = indexHtmlString.split('\n');
       htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
       indexHtmlString = htmlArray.join(`\n`);
-
       fs.writeFile('public/index.html', indexHtmlString, 'utf8');
     });
   });
