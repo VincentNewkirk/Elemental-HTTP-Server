@@ -16,12 +16,12 @@ const server = http.createServer((req, res) =>  {
   } else if(req.method === 'PUT'){
     putFunction(req, res);
   } else if(req.method === 'DELETE'){
+    decrementIndexHtml(req, res);
     deleteFunction(req, res);
   }
 });
 
 server.listen('8080');
-
 
 /***************************************
 **************FUNCTIONS*************
@@ -75,7 +75,6 @@ const getFunction = (req, res) => {
   });
 };
 
-
 const postFunction = (req, res) => {
   req.on('data', (data) => {
     const reqBody = querystring.parse(data.toString());
@@ -105,6 +104,39 @@ const updateIndexHtml = ( req, reqBody ) =>{
       indexHtmlString = htmlArray.join(`\n`);
       fs.writeFile('public/index.html', indexHtmlString, 'utf8');
     });
+  });
+};
+
+const decrementIndexHtml = (req, res)  => {
+  fs.readFile('public/index.html', (err, data) => {
+    //store the req.url element name so we can search for it
+    let elementName = req.url.split('');
+    elementName.shift('');
+    for(var i = 0; i < 5; i++){
+      elementName.pop();
+    }
+    //use the last 3 letters of the element as the search start point
+    let tempArr = [];
+    for(var i =0; i<4; i++){
+      tempArr += elementName.pop();
+    }
+    tempArr = tempArr.split('');
+    tempArr.reverse();
+
+    tempArr = tempArr.join('');
+    tempArr = tempArr+'</a>';
+    elementName=tempArr;
+
+    let indexHtmlString = data.toString();
+    //store the string up to the li tag we want to delete
+    let firstHalfMarker = indexHtmlString.indexOf(`${req.url}`) - 22;
+    let firstHalf = indexHtmlString.slice(0, firstHalfMarker);
+    //store the rest of the string from the end of the li we want to delete
+    let secondHalfMarker = indexHtmlString.indexOf(elementName) + 20;
+    let secondHalf = indexHtmlString.slice(secondHalfMarker);
+    //join the two strings together
+    let wholeString = [firstHalf, secondHalf].join('');
+    fs.writeFile('public/index.html', wholeString, 'utf8');
   });
 };
 
