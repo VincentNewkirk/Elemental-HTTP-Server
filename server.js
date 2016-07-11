@@ -109,6 +109,14 @@ const updateIndexHtml = ( req, reqBody ) =>{
 
 const decrementIndexHtml = (req, res)  => {
   fs.readFile('public/index.html', (err, data) => {
+    let indexHtmlString = data.toString();
+    //decrement counter in header
+    let findTheNum = indexHtmlString.indexOf(`</h3>`);
+    let numOfElements = parseFloat(indexHtmlString.charAt(findTheNum-1));
+    let decrementNumElements = --numOfElements;
+    let htmlArray = indexHtmlString.split('\n');
+    htmlArray.splice(10,1,`<h3>There are ${decrementNumElements}</h3>`);
+    indexHtmlString = htmlArray.join(`\n`);
     //store the req.url element name so we can search for it
     let elementName = req.url.split('');
     elementName.shift('');
@@ -127,7 +135,6 @@ const decrementIndexHtml = (req, res)  => {
     tempArr = tempArr+'</a>';
     elementName=tempArr;
 
-    let indexHtmlString = data.toString();
     //store the string up to the li tag we want to delete
     let firstHalfMarker = indexHtmlString.indexOf(`${req.url}`) - 22;
     let firstHalf = indexHtmlString.slice(0, firstHalfMarker);
