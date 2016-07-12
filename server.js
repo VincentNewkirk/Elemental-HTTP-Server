@@ -2,6 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
+const userPass = 'zerocool:love';
+let authenticated = false;
 
 /**********************
 ***********SERVER***********
@@ -11,13 +13,22 @@ const server = http.createServer((req, res) =>  {
   if(req.method === 'GET'){
     getFunction(req, res);
   } else if(req.method === 'POST'){
+    checkAuthorization(req,res);
+    if(authenticated){
     updateIndexHtml(req, res);
     postFunction(req, res);
+    }
   } else if(req.method === 'PUT'){
+    checkAuthorization(req, res);
+    if(authenticated){
     putFunction(req, res);
+    }
   } else if(req.method === 'DELETE'){
+    checkAuthorization(req, res);
+    if(authenticated){
     decrementIndexHtml(req, res);
     deleteFunction(req, res);
+    }
   }
 });
 
@@ -26,37 +37,27 @@ server.listen('8080');
 /***************************************
 **************FUNCTIONS*************
 ***************************************/
-const deleteFunction = (req, res) => {
-  fs.readFile('public' + req.url, (err, data) => {
-    if(err !== null){
-      res.writeHead(500, {
-        'Content-type':'application/jason',
-        'error':`resource ${req.url} does not exist`,
-      });
-      res.end();
-    } else {
-      res.writeHead(200, {
-        'Content-type':'application/json',
-        'success': true,
-      });
-      fs.unlink('public' + req.url);
-      res.end();
-    }
-  });
-};
-
-const putFunction = (req, res) => {
-  fs.readFile('public' + req.url, (err, data) => {
-    if(err !== null){
-      res.writeHead(500, {
-        'Content-type':'application/json',
-        "error" : `resource ${req.url} does not exist`,
+const checkAuthorization = (req, res) => {
+  if(req.headers.authorization === undefined){
+    res.writeHead(401, {
+      'WWW-authenticate':'Basic realm ="Secure Area"',
+    });
+    authenticated = false;
+    res.end();
+  } else {
+    let codedString = req.headers.authorization.slice(6);
+    let base64Buffer = new Buffer(codedString, 'base64');
+    let decodedStr = base64Buffer.toString();
+      if(decodedStr !== userPass){
+        res.writeHead(401, {
+        'WWW-authenticate':'Basic realm ="Secure Area"',
         });
-      res.end();
-    } else {
-      postFunction(req, res);
-    }
-  });
+        res.end('<html><body>Not Authorized</body></html>');
+      } else{
+        console.log('User authenticated. Method: ', req.method);
+      }
+    authenticated = true;
+  }
 };
 
 const getFunction = (req, res) => {
@@ -86,7 +87,40 @@ const postFunction = (req, res) => {
   });
 };
 
-const updateIndexHtml = ( req, reqBody ) =>{
+const putFunction = (req, res) => {
+  fs.readFile('public' + req.url, (err, data) => {
+    if(err !== null){
+      res.writeHead(500, {
+        'Content-type':'application/json',
+        "error" : `resource ${req.url} does not exist`,
+        });
+      res.end();
+    } else {
+      postFunction(req, res);
+    }
+  });
+};
+
+const deleteFunction = (req, res) => {
+  fs.readFile('public' + req.url, (err, data) => {
+    if(err !== null){
+      res.writeHead(500, {
+        'Content-type':'application/json',
+        'error':`resource ${req.url} does not exist`,
+      });
+      res.end();
+    } else {
+      res.writeHead(200, {
+        'Content-type':'application/json',
+        'success': true,
+      });
+      fs.unlink('public' + req.url);
+      res.end();
+    }
+  });
+};
+
+const updateIndexHtml = ( req, res ) =>{
   req.on('data', (data) => {
     const reqBody = querystring.parse(data.toString());
     fs.readFile('public/index.html', (err, data)=>{
@@ -119,7 +153,6 @@ const decrementIndexHtml = (req, res)  => {
     indexHtmlString = htmlArray.join(`\n`);
     //store the req.url element name so we can search for it
     let elementName = req.url.split('');
-    elementName.shift('');
     for(var i = 0; i < 5; i++){
       elementName.pop();
     }
@@ -130,10 +163,9 @@ const decrementIndexHtml = (req, res)  => {
     }
     tempArr = tempArr.split('');
     tempArr.reverse();
-
     tempArr = tempArr.join('');
-    tempArr = tempArr+'</a>';
-    elementName=tempArr;
+    tempArr = tempArr + '</a>';
+    elementName = tempArr;
 
     //store the string up to the li tag we want to delete
     let firstHalfMarker = indexHtmlString.indexOf(`${req.url}`) - 22;
