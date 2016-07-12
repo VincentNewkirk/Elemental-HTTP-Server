@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
 const userPass = 'zerocool:love';
-let authenticated = false;
 
 /**********************
 ***********SERVER***********
@@ -13,21 +12,18 @@ const server = http.createServer((req, res) =>  {
   if(req.method === 'GET'){
     getFunction(req, res);
   } else if(req.method === 'POST'){
-    checkAuthorization(req,res);
-    if(authenticated){
+    if(checkAuthorization(req,res)){
     updateIndexHtml(req, res);
     postFunction(req, res);
     }
   } else if(req.method === 'PUT'){
-    checkAuthorization(req, res);
-    if(authenticated){
-    putFunction(req, res);
+    if(checkAuthorization(req, res)){
+      putFunction(req, res);
     }
   } else if(req.method === 'DELETE'){
-    checkAuthorization(req, res);
-    if(authenticated){
-    decrementIndexHtml(req, res);
-    deleteFunction(req, res);
+    if(checkAuthorization(req, res)){
+      decrementIndexHtml(req, res);
+      deleteFunction(req, res);
     }
   }
 });
@@ -42,8 +38,8 @@ const checkAuthorization = (req, res) => {
     res.writeHead(401, {
       'WWW-authenticate':'Basic realm ="Secure Area"',
     });
-    authenticated = false;
     res.end();
+    return false;
   } else {
     let codedString = req.headers.authorization.slice(6);
     let base64Buffer = new Buffer(codedString, 'base64');
@@ -53,10 +49,11 @@ const checkAuthorization = (req, res) => {
         'WWW-authenticate':'Basic realm ="Secure Area"',
         });
         res.end('<html><body>Not Authorized</body></html>');
+        return false;
       } else{
         console.log('User authenticated. Method: ', req.method);
+        return true;
       }
-    authenticated = true;
   }
 };
 
@@ -82,7 +79,7 @@ const postFunction = (req, res) => {
     res.writeHead(200, {
       'Content-type' : 'application/json',
       'success' : true});
-    fs.writeFile('public' + req.url, htmlTemplate(reqBody));
+    fs.writeFileSync('public' + req.url, htmlTemplate(reqBody));
     res.end();
   });
 };
@@ -114,7 +111,7 @@ const deleteFunction = (req, res) => {
         'Content-type':'application/json',
         'success': true,
       });
-      fs.unlink('public' + req.url);
+      fs.unlinkSync('public' + req.url);
       res.end();
     }
   });
@@ -136,7 +133,7 @@ const updateIndexHtml = ( req, res ) =>{
       let htmlArray = indexHtmlString.split('\n');
       htmlArray.splice(10,1,`<h3>There are ${incrementNumElements}</h3>`);
       indexHtmlString = htmlArray.join(`\n`);
-      fs.writeFile('public/index.html', indexHtmlString, 'utf8');
+      fs.writeFileSync('public/index.html', indexHtmlString, 'utf8');
     });
   });
 };
@@ -175,7 +172,7 @@ const decrementIndexHtml = (req, res)  => {
     let secondHalf = indexHtmlString.slice(secondHalfMarker);
     //join the two strings together
     let wholeString = [firstHalf, secondHalf].join('');
-    fs.writeFile('public/index.html', wholeString, 'utf8');
+    fs.writeFileSync('public/index.html', wholeString, 'utf8');
   });
 };
 
