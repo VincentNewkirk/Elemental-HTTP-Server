@@ -2,7 +2,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
-const userPass = 'zerocool:love';
 
 /**********************
 ***********SERVER***********
@@ -41,6 +40,7 @@ const checkAuthorization = (req, res) => {
     res.end();
     return false;
   } else {
+    const userPass = 'zerocool:love';
     let codedString = req.headers.authorization.slice(6);
     let base64Buffer = new Buffer(codedString, 'base64');
     let decodedStr = base64Buffer.toString();
